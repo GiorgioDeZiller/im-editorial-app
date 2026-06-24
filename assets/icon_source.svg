@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <!-- Background nero -->
+  <rect width="1024" height="1024" fill="#0A0A0A" rx="200"/>
+
+  <!-- Testa/silhouette Innovation Machine (arancione) centrata in alto -->
+  <!-- Silhouette semplificata: testa rotonda con spirale stilizzata -->
+  <g transform="translate(512, 430) scale(1.1)">
+    <!-- Testa -->
+    <ellipse cx="0" cy="-60" rx="130" ry="150" fill="#F7941D"/>
+    <!-- Collo -->
+    <rect x="-45" y="80" width="90" height="50" fill="#F7941D" rx="10"/>
+    <!-- Spalle -->
+    <ellipse cx="0" cy="145" rx="120" ry="40" fill="#F7941D"/>
+
+    <!-- Spirale (occhio/mente) in bianco -->
+    <g transform="translate(0, -55)">
+      <!-- Cerchi spirale concentrici -->
+      <circle cx="0" cy="0" r="70" fill="none" stroke="#FFFFFF" stroke-width="8" opacity="0.9"/>
+      <circle cx="0" cy="0" r="50" fill="none" stroke="#FFFFFF" stroke-width="7" opacity="0.8"/>
+      <circle cx="0" cy="0" r="32" fill="none" stroke="#FFFFFF" stroke-width="6" opacity="0.7"/>
+      <circle cx="0" cy="0" r="17" fill="#FFFFFF" opacity="0.9"/>
+      <!-- Linea spirale -->
+      <path d="M 70 0 Q 0 -70 -70 0 Q 0 70 50 0 Q 0 -50 -32 0 Q 0 32 17 0"
+            fill="none" stroke="#D4750A" stroke-width="4" opacity="0.8"/>
+    </g>
+
+    <!-- Scintilla stella in cima alla testa -->
+    <g transform="translate(30, -220)">
+      <polygon points="0,-18 4,-6 16,-6 7,2 10,14 0,7 -10,14 -7,2 -16,-6 -4,-6"
+               fill="#FFB347" opacity="0.95"/>
+    </g>
+  </g>
+
+  <!-- Testo EDITORIAL in basso -->
+  <text x="512" y="820"
+        font-family="'Arial Black', 'Helvetica Neue', Arial, sans-serif"
+        font-size="88"
+        font-weight="900"
+        fill="#FFFFFF"
+        text-anchor="middle"
+        letter-spacing="8">EDITORIAL</text>
+
+  <!-- Linea arancione sotto il testo -->
+  <rect x="180" y="845" width="664" height="6" fill="#F7941D" rx="3"/>
+
+  <!-- Piccola etichetta IM sopra -->
+  <text x="512" y="940"
+        font-family="'Arial', sans-serif"
+        font-size="42"
+        font-weight="700"
+        fill="#F7941D"
+        text-anchor="middle"
+        letter-spacing="14">INNOVATION MACHINE</text>
+</svg>
