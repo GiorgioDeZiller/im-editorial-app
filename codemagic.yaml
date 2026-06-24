@@ -10,26 +10,20 @@ workflows:
       cocoapods: default
       vars:
         BUNDLE_ID: com.innovationmachine.imeditorial
-        XCODE_WORKSPACE: ios/Runner.xcworkspace
-        XCODE_SCHEME: Runner
 
     scripts:
-      - name: Install Flutter dependencies
+      - name: Flutter pub get
         script: flutter pub get
 
-      - name: Install CocoaPods
-        script: |
-          cd ios && pod install
-
-      - name: Build iOS (no codesign)
+      - name: Build iOS
         script: |
           flutter build ios --release --no-codesign
 
       - name: Build IPA
         script: |
           xcode-project build-ipa \
-            --workspace "$XCODE_WORKSPACE" \
-            --scheme "$XCODE_SCHEME"
+            --workspace ios/Runner.xcworkspace \
+            --scheme Runner
 
     artifacts:
       - build/ios/ipa/*.ipa
