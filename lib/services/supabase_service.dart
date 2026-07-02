@@ -48,6 +48,21 @@ class SupabaseService {
     );
   }
 
+  static Future<void> updateFields(String id, Map<String, dynamic> fields) async {
+    await init();
+    if (!isConfigured) throw Exception('Database non configurato');
+
+    final uri = Uri.parse('$_url/rest/v1/proposte?id=eq.$id');
+    final res = await http.patch(
+      uri,
+      headers: _headers,
+      body: jsonEncode(fields),
+    );
+    if (res.statusCode != 200 && res.statusCode != 204) {
+      throw Exception('Errore salvataggio: ${res.statusCode}');
+    }
+  }
+
   static Future<void> insertProposals(List<Map<String, dynamic>> proposals) async {
     await init();
     if (!isConfigured) return;

@@ -1,13 +1,14 @@
 class Proposal {
   final String id;
   final String date;
-  final String title;
-  final String problem;
-  final String sector;
-  final String angle;
-  final String vidTitle;
+  // Campi modificabili dall'utente (usati per la generazione)
+  String title;
+  String problem;
+  String sector;
+  String angle;
+  String vidTitle;
   final String siteDeep;
-  final String imLink;
+  String imLink;
   final String sources;
   final int score;
   final String priority;

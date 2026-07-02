@@ -6,6 +6,8 @@ class ProposalCard extends StatefulWidget {
   final bool isSelected;
   final VoidCallback onTap;              // attiva/disattiva la selezione
   final ValueChanged<String> onStatusChange;
+  // Salva un campo modificato (colonna DB -> nuovo valore). Puo lanciare in caso di errore.
+  final Future<void> Function(String column, String value)? onEditField;
 
   const ProposalCard({
     super.key,
@@ -13,6 +15,7 @@ class ProposalCard extends StatefulWidget {
     required this.isSelected,
     required this.onTap,
     required this.onStatusChange,
+    this.onEditField,
   });
 
   @override
@@ -21,9 +24,57 @@ class ProposalCard extends StatefulWidget {
 
 class _ProposalCardState extends State<ProposalCard> {
   bool _expanded = false;
+  String? _editingCol;              // colonna DB del campo in modifica
+  final TextEditingController _editCtrl = TextEditingController();
+  bool _saving = false;
 
   Proposal get proposal => widget.proposal;
   bool get isSelected => widget.isSelected;
+
+  @override
+  void dispose() {
+    _editCtrl.dispose();
+    super.dispose();
+  }
+
+  // Applica la modifica al modello locale (campi mutabili)
+  void _applyLocal(String column, String value) {
+    switch (column) {
+      case 'titolo':          proposal.title = value; break;
+      case 'problema':        proposal.problem = value; break;
+      case 'settore':         proposal.sector = value; break;
+      case 'angolo':          proposal.angle = value; break;
+      case 'titolo_video':    proposal.vidTitle = value; break;
+      case 'collegamento_im': proposal.imLink = value; break;
+    }
+  }
+
+  Future<void> _saveEdit(String column) async {
+    final value = _editCtrl.text.trim();
+    setState(() => _saving = true);
+    // aggiorna subito la UI locale
+    _applyLocal(column, value);
+    try {
+      if (widget.onEditField != null) {
+        await widget.onEditField!(column, value);
+      }
+      if (mounted) setState(() { _editingCol = null; _saving = false; });
+    } catch (e) {
+      if (mounted) {
+        setState(() { _editingCol = null; _saving = false; });
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('Modifica salvata solo sul telefono (errore rete): $e'),
+            backgroundColor: const Color(0xFFf59e0b)));
+      }
+    }
+  }
+
+  void _startEdit(String column, String current) {
+    setState(() {
+      _editingCol = column;
+      _editCtrl.text = current;
+    });
+  }
 
   Color _priorityColor(BuildContext ctx) {
     switch (proposal.priority) {
@@ -115,10 +166,10 @@ class _ProposalCardState extends State<ProposalCard> {
 
               const SizedBox(height: 6),
 
-              // Problem (troncato se chiuso, completo se aperto)
+              // Problem (anteprima troncata; testo completo/modificabile nel pannello)
               Text(proposal.problem,
-                  maxLines: _expanded ? null : 2,
-                  overflow: _expanded ? TextOverflow.visible : TextOverflow.ellipsis,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(fontSize: 12, color: Color(0xFF999999), height: 1.5)),
 
               // Riga titolo video (solo in modalità compatta)
@@ -272,15 +323,127 @@ class _ProposalCardState extends State<ProposalCard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _detail('Settore principale', proposal.sector),
-          _detail('Angolo editoriale (YouTube)', proposal.angle),
-          _detail('Possibile titolo video', proposal.vidTitle),
+          // Campi modificabili (usati per la generazione) — con matitina
+          _editable('Titolo dell\'argomento', proposal.title, 'titolo'),
+          _editable('Problema concreto', proposal.problem, 'problema'),
+          _editable('Settore principale', proposal.sector, 'settore'),
+          _editable('Angolo editoriale (YouTube)', proposal.angle, 'angolo'),
+          _editable('Possibile titolo video', proposal.vidTitle, 'titolo_video'),
+          _editable('Collegamento con i servizi IM', proposal.imLink, 'collegamento_im'),
+          // Campi in sola lettura
           _detail('Possibile approfondimento sul sito', proposal.siteDeep),
-          _detail('Collegamento con i servizi IM', proposal.imLink),
           _detail('Fonti attendibili e aggiornate', proposal.sources),
           _detail('Priorità editoriale', proposal.priority),
           _detail('Punteggio totale', '${proposal.score}/25'),
           _detail('Nota per la scelta finale', proposal.note),
+        ],
+      ),
+    );
+  }
+
+  // Campo modificabile: mostra valore + matitina; in modifica mostra il TextField
+  Widget _editable(String label, String value, String column) {
+    final editing = _editingCol == column;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label.toUpperCase(),
+              style: const TextStyle(
+                  fontSize: 9,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFFF7941D),
+                  letterSpacing: 0.5)),
+          const SizedBox(height: 3),
+          if (!editing)
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Text(value.trim().isEmpty ? '—' : value,
+                      style: TextStyle(
+                          fontSize: 12.5,
+                          color: value.trim().isEmpty
+                              ? const Color(0xFF666666)
+                              : const Color(0xFFDDDDDD),
+                          height: 1.45)),
+                ),
+                const SizedBox(width: 6),
+                GestureDetector(
+                  onTap: () => _startEdit(column, value),
+                  behavior: HitTestBehavior.opaque,
+                  child: const Padding(
+                    padding: EdgeInsets.all(2),
+                    child: Icon(Icons.edit, size: 15, color: Color(0xFF888888)),
+                  ),
+                ),
+              ],
+            )
+          else
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                TextField(
+                  controller: _editCtrl,
+                  autofocus: true,
+                  maxLines: null,
+                  style: const TextStyle(fontSize: 12.5, color: Color(0xFFFFFFFF), height: 1.45),
+                  decoration: InputDecoration(
+                    isDense: true,
+                    filled: true,
+                    fillColor: const Color(0xFF0A0A0A),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(6),
+                        borderSide: const BorderSide(color: Color(0xFFF7941D))),
+                    focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(6),
+                        borderSide: const BorderSide(color: Color(0xFFF7941D), width: 1.5)),
+                    enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(6),
+                        borderSide: const BorderSide(color: Color(0xFF444444))),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    GestureDetector(
+                      onTap: _saving ? null : () => setState(() => _editingCol = null),
+                      behavior: HitTestBehavior.opaque,
+                      child: const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        child: Text('Annulla',
+                            style: TextStyle(fontSize: 12, color: Color(0xFF999999))),
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    GestureDetector(
+                      onTap: _saving ? null : () => _saveEdit(column),
+                      behavior: HitTestBehavior.opaque,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF7941D),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: _saving
+                            ? const SizedBox(
+                                width: 13, height: 13,
+                                child: CircularProgressIndicator(
+                                    strokeWidth: 2, color: Colors.black))
+                            : const Text('Salva',
+                                style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                    color: Colors.black)),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
         ],
       ),
     );

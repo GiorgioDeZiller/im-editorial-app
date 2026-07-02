@@ -21,6 +21,7 @@ class _HomeScreenState extends State<HomeScreen> {
   List<Proposal> _all = [];
   List<Proposal> _filtered = [];
   final Set<String> _selected = {};
+  final Set<String> _formats = {};   // formati scelti: newsletter/youtube/social
   String _fStatus = '', _fPriority = '', _fSector = '', _search = '';
   bool _loading = false;
   bool _generating = false;
@@ -84,8 +85,8 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  // ── Genera contenuto con Claude ────────────────────────────────────
-  Future<void> _generate(String type) async {
+  // ── Genera contenuto con Claude (tutti i formati scelti) ───────────
+  Future<void> _generateSelected() async {
     final apiKey = await StorageService.getApiKey();
     if (apiKey.isEmpty) {
       if (mounted) {
@@ -100,7 +101,7 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     final selected = _all.where((p) => _selected.contains(p.id)).toList();
-    if (selected.isEmpty) return;
+    if (selected.isEmpty || _formats.isEmpty) return;
 
     final model = await StorageService.getModel();
     final titles = {
@@ -108,19 +109,34 @@ class _HomeScreenState extends State<HomeScreen> {
       'youtube': '▶ Script YouTube',
       'social': '📱 Post Social'
     };
+    // ordine fisso a prescindere dall'ordine di selezione
+    final order =
+        ['newsletter', 'youtube', 'social'].where(_formats.contains).toList();
 
     setState(() => _generating = true);
     try {
-      final text = await ClaudeService.generate(
-          apiKey: apiKey, model: model, proposals: selected, type: type);
-      await NotificationService.notifyGenerated(type);
+      final buffer = StringBuffer();
+      for (final type in order) {
+        final text = await ClaudeService.generate(
+            apiKey: apiKey, model: model, proposals: selected, type: type);
+        if (buffer.isNotEmpty) buffer.write('\n\n\n');
+        if (order.length > 1) {
+          buffer.write(
+              '═══════════════════════\n${titles[type]}\n═══════════════════════\n\n');
+        }
+        buffer.write(text);
+        await NotificationService.notifyGenerated(type);
+      }
       if (mounted) {
         setState(() => _generating = false);
         await Navigator.push(
             context,
             MaterialPageRoute(
                 builder: (_) => ResultScreen(
-                    title: titles[type] ?? 'Risultato', text: text)));
+                    title: order.length > 1
+                        ? 'Contenuti generati'
+                        : (titles[order.first] ?? 'Risultato'),
+                    text: buffer.toString())));
       }
     } catch (e) {
       if (mounted) {
@@ -558,6 +574,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 : _selected.add(p.id);
           }),
           onStatusChange: (s) => _changeStatus(p, s),
+          onEditField: (column, value) =>
+              SupabaseService.updateFields(p.id, {column: value}),
         );
       },
     );
@@ -611,49 +629,74 @@ class _HomeScreenState extends State<HomeScreen> {
                               fontSize: 13)),
                     ]),
               )
-            else
+            else ...[
               Row(children: [
-                Expanded(
-                    child: _genBtn(
-                        '📧', 'Newsletter', 'newsletter', n > 0)),
+                Expanded(child: _formatBtn('📧', 'Newsletter', 'newsletter')),
                 const SizedBox(width: 6),
-                Expanded(
-                    child:
-                        _genBtn('▶', 'YouTube', 'youtube', n > 0)),
+                Expanded(child: _formatBtn('▶', 'YouTube', 'youtube')),
                 const SizedBox(width: 6),
-                Expanded(
-                    child: _genBtn('📱', 'Social', 'social', n > 0)),
+                Expanded(child: _formatBtn('📱', 'Social', 'social')),
               ]),
+              const SizedBox(height: 8),
+              _generaBtn(n > 0 && _formats.isNotEmpty),
+            ],
           ],
         ),
       ),
     );
   }
 
-  Widget _genBtn(String icon, String label, String type, bool enabled) {
+  // Riquadro formato selezionabile: bordo arancione marcato quando attivo
+  Widget _formatBtn(String icon, String label, String type) {
+    final active = _formats.contains(type);
     return GestureDetector(
-      onTap: enabled ? () => _generate(type) : null,
+      onTap: () => setState(() {
+        active ? _formats.remove(type) : _formats.add(type);
+      }),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
         padding: const EdgeInsets.symmetric(vertical: 10),
         decoration: BoxDecoration(
-          color: enabled
-              ? const Color(0xFF1F1F1F)
-              : const Color(0xFF1A1A1A),
+          color: active ? const Color(0xFF2A1E0B) : const Color(0xFF1F1F1F),
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-              color: enabled
-                  ? const Color(0xFFF7941D)
-                  : const Color(0xFF2A2A2A)),
+              color: active ? const Color(0xFFF7941D) : const Color(0xFF2A2A2A),
+              width: active ? 2.5 : 1),
         ),
         alignment: Alignment.center,
         child: Text('$icon $label',
             style: TextStyle(
                 fontSize: 12,
-                fontWeight: FontWeight.w700,
-                color: enabled
+                fontWeight: active ? FontWeight.w800 : FontWeight.w700,
+                color: active
                     ? const Color(0xFFFFB347)
-                    : const Color(0xFF555555))),
+                    : const Color(0xFF888888))),
+      ),
+    );
+  }
+
+  Widget _generaBtn(bool enabled) {
+    return GestureDetector(
+      onTap: enabled ? _generateSelected : null,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          color: enabled ? const Color(0xFFF7941D) : const Color(0xFF2A2A2A),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        alignment: Alignment.center,
+        child: Text(
+            enabled
+                ? '⚡ Genera (${_formats.length})'
+                : (_selected.isEmpty
+                    ? 'Seleziona almeno una proposta'
+                    : 'Scegli un formato'),
+            style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w800,
+                color: enabled ? Colors.black : const Color(0xFF666666))),
       ),
     );
   }
