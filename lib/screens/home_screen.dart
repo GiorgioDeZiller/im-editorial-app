@@ -136,6 +136,7 @@ class _HomeScreenState extends State<HomeScreen> {
   int get _newCount => _all.where((p) => p.isNew).length;
   int get _approvedCount => _all.where((p) => p.status == 'Approvato').length;
   int get _pendingCount => _all.where((p) => p.status == 'Da valutare').length;
+  int get _rejectedCount => _all.where((p) => p.status == 'Scartato').length;
 
   @override
   Widget build(BuildContext context) {
@@ -393,13 +394,6 @@ class _HomeScreenState extends State<HomeScreen> {
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.fromLTRB(12, 10, 12, 4),
             child: Row(children: [
-              _filterGroup('Stato',
-                  ['', 'Da valutare', 'Approvato', 'Scartato'], _fStatus,
-                  (v) {
-                setState(() => _fStatus = v);
-                _applyFilters();
-              }),
-              const SizedBox(width: 16),
               _filterGroup(
                   'Priorità', ['', 'Alta', 'Media', 'Bassa'], _fPriority,
                   (v) {
@@ -485,42 +479,55 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildStats() {
+    // (conteggio, etichetta, colore, valore-stato per il filtro)
     final chips = [
-      ('${_all.length}', 'Totale', const Color(0xFF999999)),
-      ('$_pendingCount', 'Da valutare', const Color(0xFFf59e0b)),
-      ('$_approvedCount', 'Approvate', const Color(0xFF22c55e)),
-      ('${_all.length - _pendingCount - _approvedCount}', 'Scartate',
-          const Color(0xFFef4444)),
+      ('${_all.length}', 'Totale', const Color(0xFF999999), ''),
+      ('$_pendingCount', 'Da valutare', const Color(0xFFf59e0b), 'Da valutare'),
+      ('$_approvedCount', 'Approvate', const Color(0xFF22c55e), 'Approvato'),
+      ('$_rejectedCount', 'Scartate', const Color(0xFFef4444), 'Scartato'),
     ];
     return Container(
       color: const Color(0xFF0A0A0A),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       child: Row(
-        children: chips
-            .map((c) => Expanded(
-                  child: Container(
-                    margin: const EdgeInsets.only(right: 6),
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF1A1A1A),
-                      borderRadius: BorderRadius.circular(8),
-                      border:
-                          Border.all(color: const Color(0xFF2A2A2A)),
-                    ),
-                    child: Column(children: [
-                      Text(c.$1,
-                          style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w800,
-                              color: c.$3)),
-                      Text(c.$2,
-                          style: const TextStyle(
-                              fontSize: 9,
-                              color: Color(0xFF666666))),
-                    ]),
-                  ),
-                ))
-            .toList(),
+        children: chips.map((c) {
+          final active = _fStatus == c.$4;
+          return Expanded(
+            child: GestureDetector(
+              onTap: () {
+                setState(() => _fStatus = c.$4);
+                _applyFilters();
+              },
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 150),
+                margin: const EdgeInsets.only(right: 6),
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                decoration: BoxDecoration(
+                  color: active
+                      ? c.$3.withValues(alpha: 0.15)
+                      : const Color(0xFF1A1A1A),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                      color: active ? c.$3 : const Color(0xFF2A2A2A),
+                      width: active ? 1.5 : 1),
+                ),
+                child: Column(children: [
+                  Text(c.$1,
+                      style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                          color: c.$3)),
+                  Text(c.$2,
+                      style: TextStyle(
+                          fontSize: 9,
+                          fontWeight:
+                              active ? FontWeight.w700 : FontWeight.normal,
+                          color: active ? c.$3 : const Color(0xFF666666))),
+                ]),
+              ),
+            ),
+          );
+        }).toList(),
       ),
     );
   }
