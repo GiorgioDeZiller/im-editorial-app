@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <!-- Foreground per adaptive icon: SOLO logo in bianco, sfondo trasparente,
+       centrato con margine per non essere tagliato dalla maschera Android -->
+  <g transform="translate(512,512) scale(1.28) translate(-12.5,10)">
+
+    <!-- Parentesi sinistra esterna -->
+    <path d="M -195 -280
+             C -240 -280 -255 -245 -255 -200
+             L -255 180
+             C -255 225 -240 260 -195 260"
+          fill="none" stroke="white" stroke-width="28" stroke-linecap="round"
+          stroke-linejoin="round"/>
+    <!-- Parentesi sinistra interna -->
+    <path d="M -155 -245
+             C -188 -245 -200 -218 -200 -182
+             L -200 155
+             C -200 191 -188 218 -155 218"
+          fill="none" stroke="white" stroke-width="22" stroke-linecap="round"
+          stroke-linejoin="round"/>
+
+    <!-- Profilo testa destra -->
+    <path d="
+      M -155 -280
+      L  80 -280
+      C  145 -275  210 -240  245 -185
+      C  280 -130  280 -60   260 -10
+      C  245  30   230  55   240  75
+      C  250  95   255 110   245 128
+      C  232 148   210 152   195 140
+      C  178 128   172 140   162 158
+      C  148 180   138 200   118 210
+      C   95 222    60 225    30 225
+      L   30 265
+      C   30 278    18 285     5 285
+      L -155 285
+      Z
+    "
+    fill="none" stroke="white" stroke-width="13" stroke-linejoin="round" stroke-linecap="round"/>
+
+    <!-- Spirale (ora bianca per contrasto su arancione) -->
+    <path d="
+      M  60 -160
+      C 115 -155  155 -115  155  -60
+      C 155   -5  115   35   60   45
+      C   5   55  -55   25  -75  -30
+      C  -95  -85  -65 -145  -10 -165
+      C   45 -185  105 -155  120 -100
+      C  135  -45  105    5   55   18
+      C   5    31  -45    5  -58  -40
+      C  -71  -80  -45  -125   0  -138
+      C   45  -151   88  -127   95  -85
+      C  102   -43   78   -8   40    2
+    "
+    fill="none" stroke="white" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+
+    <!-- Scintilla in cima -->
+    <g transform="translate(95, -305)">
+      <line x1="0" y1="-18" x2="0" y2="18"  stroke="white" stroke-width="5" stroke-linecap="round"/>
+      <line x1="-18" y1="0" x2="18" y2="0"  stroke="white" stroke-width="5" stroke-linecap="round"/>
+      <line x1="-10" y1="-10" x2="10" y2="10" stroke="white" stroke-width="3.5" stroke-linecap="round"/>
+      <line x1="10" y1="-10" x2="-10" y2="10" stroke="white" stroke-width="3.5" stroke-linecap="round"/>
+      <circle cx="0" cy="0" r="4" fill="white"/>
+    </g>
+
+  </g>
+</svg>
