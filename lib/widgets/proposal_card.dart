@@ -1,10 +1,10 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import '../models/proposal.dart';
 
-class ProposalCard extends StatelessWidget {
+class ProposalCard extends StatefulWidget {
   final Proposal proposal;
   final bool isSelected;
-  final VoidCallback onTap;
+  final VoidCallback onTap;              // attiva/disattiva la selezione
   final ValueChanged<String> onStatusChange;
 
   const ProposalCard({
@@ -14,6 +14,16 @@ class ProposalCard extends StatelessWidget {
     required this.onTap,
     required this.onStatusChange,
   });
+
+  @override
+  State<ProposalCard> createState() => _ProposalCardState();
+}
+
+class _ProposalCardState extends State<ProposalCard> {
+  bool _expanded = false;
+
+  Proposal get proposal => widget.proposal;
+  bool get isSelected => widget.isSelected;
 
   Color _priorityColor(BuildContext ctx) {
     switch (proposal.priority) {
@@ -33,7 +43,6 @@ class ProposalCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final bg = isSelected
         ? const Color(0xFF1F1F1F)
         : proposal.status == 'Approvato'
@@ -53,7 +62,7 @@ class ProposalCard extends StatelessWidget {
                     : const Color(0xFF2A2A2A);
 
     return GestureDetector(
-      onTap: onTap,
+      onTap: () => setState(() => _expanded = !_expanded),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
         decoration: BoxDecoration(
@@ -64,7 +73,7 @@ class ProposalCard extends StatelessWidget {
             width: isSelected ? 2.5 : 1.5,
           ),
           boxShadow: isSelected
-              ? [BoxShadow(color: const Color(0xFFF7941D).withOpacity(0.3), blurRadius: 12)]
+              ? [BoxShadow(color: const Color(0xFFF7941D).withValues(alpha: 0.3), blurRadius: 12)]
               : [],
         ),
         child: Padding(
@@ -74,22 +83,25 @@ class ProposalCard extends StatelessWidget {
             children: [
               // Top row
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
+                  // Casella di selezione (per generare contenuto)
+                  _selectBox(),
+                  const SizedBox(width: 8),
                   Text(proposal.id,
                       style: const TextStyle(
                           fontFamily: 'monospace', fontSize: 11, color: Color(0xFF666666))),
-                  Row(
-                    children: [
-                      if (proposal.isNew)
-                        _badge('NUOVO', const Color(0xFFfef3c7), const Color(0xFF92400e)),
-                      const SizedBox(width: 4),
-                      if (proposal.priority.isNotEmpty)
-                        _badge(proposal.priority, _priorityBg(), _priorityColor(context)),
-                      const SizedBox(width: 4),
-                      _badge(proposal.status, _statusBg(), _statusColor()),
-                    ],
-                  ),
+                  const Spacer(),
+                  if (proposal.isNew)
+                    _badge('NUOVO', const Color(0xFFfef3c7), const Color(0xFF92400e)),
+                  if (proposal.priority.isNotEmpty) ...[
+                    const SizedBox(width: 4),
+                    _badge(proposal.priority, _priorityBg(), _priorityColor(context)),
+                  ],
+                  const SizedBox(width: 4),
+                  _badge(proposal.status, _statusBg(), _statusColor()),
+                  const SizedBox(width: 4),
+                  Icon(_expanded ? Icons.expand_less : Icons.expand_more,
+                      size: 20, color: const Color(0xFF888888)),
                 ],
               ),
 
@@ -103,13 +115,14 @@ class ProposalCard extends StatelessWidget {
 
               const SizedBox(height: 6),
 
-              // Problem
+              // Problem (troncato se chiuso, completo se aperto)
               Text(proposal.problem,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
+                  maxLines: _expanded ? null : 2,
+                  overflow: _expanded ? TextOverflow.visible : TextOverflow.ellipsis,
                   style: const TextStyle(fontSize: 12, color: Color(0xFF999999), height: 1.5)),
 
-              if (proposal.vidTitle.isNotEmpty) ...[
+              // Riga titolo video (solo in modalità compatta)
+              if (!_expanded && proposal.vidTitle.isNotEmpty) ...[
                 const SizedBox(height: 6),
                 Row(
                   children: [
@@ -125,6 +138,9 @@ class ProposalCard extends StatelessWidget {
                   ],
                 ),
               ],
+
+              // Pannello dettagli completo (quando espanso)
+              if (_expanded) _buildDetails(),
 
               const SizedBox(height: 8),
 
@@ -167,7 +183,7 @@ class ProposalCard extends StatelessWidget {
                       activeBg: const Color(0xFF14532d),
                       inactiveBg: const Color(0xFF1a3a2a),
                       inactiveColor: const Color(0xFF86efac),
-                      onTap: () => onStatusChange('Approvato'),
+                      onTap: () => widget.onStatusChange('Approvato'),
                     ),
                   ),
                   const SizedBox(width: 6),
@@ -179,13 +195,13 @@ class ProposalCard extends StatelessWidget {
                       activeBg: const Color(0xFFef4444),
                       inactiveBg: const Color(0xFF3a1a1a),
                       inactiveColor: const Color(0xFFfca5a5),
-                      onTap: () => onStatusChange('Scartato'),
+                      onTap: () => widget.onStatusChange('Scartato'),
                     ),
                   ),
                   if (proposal.status != 'Da valutare') ...[
                     const SizedBox(width: 6),
                     GestureDetector(
-                      onTap: () => onStatusChange('Da valutare'),
+                      onTap: () => widget.onStatusChange('Da valutare'),
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                         decoration: BoxDecoration(
@@ -206,7 +222,7 @@ class ProposalCard extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.check_circle, color: const Color(0xFFF7941D), size: 14),
+                    const Icon(Icons.check_circle, color: Color(0xFFF7941D), size: 14),
                     const SizedBox(width: 4),
                     const Text('Selezionata per generare contenuto',
                         style: TextStyle(fontSize: 11, color: Color(0xFFF7941D))),
@@ -216,6 +232,78 @@ class ProposalCard extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  // ── Casella di selezione ─────────────────────────────────────────────
+  Widget _selectBox() {
+    return GestureDetector(
+      onTap: widget.onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        width: 22,
+        height: 22,
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFFF7941D) : Colors.transparent,
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(
+              color: isSelected ? const Color(0xFFF7941D) : const Color(0xFF555555),
+              width: 1.5),
+        ),
+        child: isSelected
+            ? const Icon(Icons.check, size: 15, color: Colors.black)
+            : null,
+      ),
+    );
+  }
+
+  // ── Pannello dettagli ────────────────────────────────────────────────
+  Widget _buildDetails() {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(top: 10),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF141414),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: const Color(0xFF2A2A2A)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _detail('Settore principale', proposal.sector),
+          _detail('Angolo editoriale (YouTube)', proposal.angle),
+          _detail('Possibile titolo video', proposal.vidTitle),
+          _detail('Possibile approfondimento sul sito', proposal.siteDeep),
+          _detail('Collegamento con i servizi IM', proposal.imLink),
+          _detail('Fonti attendibili e aggiornate', proposal.sources),
+          _detail('Priorità editoriale', proposal.priority),
+          _detail('Punteggio totale', '${proposal.score}/25'),
+          _detail('Nota per la scelta finale', proposal.note),
+        ],
+      ),
+    );
+  }
+
+  Widget _detail(String label, String value) {
+    if (value.trim().isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label.toUpperCase(),
+              style: const TextStyle(
+                  fontSize: 9,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFFF7941D),
+                  letterSpacing: 0.5)),
+          const SizedBox(height: 3),
+          Text(value,
+              style: const TextStyle(
+                  fontSize: 12.5, color: Color(0xFFDDDDDD), height: 1.45)),
+        ],
       ),
     );
   }

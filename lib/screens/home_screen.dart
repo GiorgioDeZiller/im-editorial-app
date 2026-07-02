@@ -580,7 +580,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 padding: const EdgeInsets.only(bottom: 8),
                 child: Row(children: [
                   Text(
-                      '$n proposta${n > 1 ? 'e' : ''} selezionata${n > 1 ? 'e' : ''}',
+                      n > 1 ? '$n proposte selezionate' : '$n proposta selezionata',
                       style: const TextStyle(
                           fontSize: 12, color: Color(0xFF999999))),
                   const Spacer(),
