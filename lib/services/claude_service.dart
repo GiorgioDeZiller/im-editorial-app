@@ -23,6 +23,8 @@ class ClaudeService {
         'Content-Type': 'application/json',
         'x-api-key': apiKey,
         'anthropic-version': '2023-06-01',
+        // Consente la chiamata diretta dal browser (app web)
+        'anthropic-dangerous-direct-browser-access': 'true',
       },
       body: jsonEncode({
         'model': model,
