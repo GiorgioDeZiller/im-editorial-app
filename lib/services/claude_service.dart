@@ -119,6 +119,40 @@ POST INSTAGRAM:
 
 Testi pronti da copiare.''';
 
+      case 'short':
+        final r = rows.first;
+        final extra = rows.length > 1
+            ? '\nAltri spunti (usa solo se davvero pertinenti, ma resta su UNA idea):\n${rows.skip(1).map((x) => '- ${x.title}').join('\n')}'
+            : '';
+        return '''Sei uno script writer per YouTube Shorts (video verticali) di $_brand
+
+Argomento: ${r.title}
+Problema: ${r.problem}
+Settore: ${r.sector}
+Angolo: ${r.angle}
+Collegamento IM: ${r.imLink}$extra
+
+Scrivi il testo per uno SHORT verticale di 30-45 secondi: una persona parla in camera (sarà un avatar AI con voce clonata).
+
+Regole:
+- UNA sola idea, chiara e utile
+- Hook fortissimo nei primi 2 secondi (una domanda o un dato che ferma lo scroll)
+- Linguaggio parlato e naturale, frasi brevi, tono da esperto ma diretto
+- 90-130 parole totali (deve stare in ~40 secondi)
+- Chiudi con una CTA naturale (seguici / guarda l'approfondimento / contattaci)
+- NON usare marcatori tipo [PAUSA], [ENFASI], parentesi o note di regia: verrebbero letti ad alta voce dall'avatar
+
+Produci ESATTAMENTE queste 3 sezioni, con queste intestazioni:
+
+=== COPIONE (incolla questo in HeyGen) ===
+(solo il testo che l'avatar deve pronunciare, pulito, senza marcatori)
+
+=== TITOLO A SCHERMO ===
+(3-6 parole da mostrare come testo in sovrimpressione all'inizio)
+
+=== DESCRIZIONE + HASHTAG (per l'upload su YouTube) ===
+(2-3 righe di descrizione + 4-6 hashtag pertinenti al settore)''';
+
       default:
         return 'Scrivi un testo divulgativo su:\n$topics';
     }

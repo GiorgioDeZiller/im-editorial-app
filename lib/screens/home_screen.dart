@@ -107,11 +107,13 @@ class _HomeScreenState extends State<HomeScreen> {
     final titles = {
       'newsletter': '📧 Newsletter',
       'youtube': '▶ Script YouTube',
-      'social': '📱 Post Social'
+      'social': '📱 Post Social',
+      'short': '🎬 Short verticale'
     };
     // ordine fisso a prescindere dall'ordine di selezione
-    final order =
-        ['newsletter', 'youtube', 'social'].where(_formats.contains).toList();
+    final order = ['newsletter', 'youtube', 'social', 'short']
+        .where(_formats.contains)
+        .toList();
 
     setState(() => _generating = true);
     try {
@@ -634,8 +636,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 Expanded(child: _formatBtn('📧', 'Newsletter', 'newsletter')),
                 const SizedBox(width: 6),
                 Expanded(child: _formatBtn('▶', 'YouTube', 'youtube')),
-                const SizedBox(width: 6),
+              ]),
+              const SizedBox(height: 6),
+              Row(children: [
                 Expanded(child: _formatBtn('📱', 'Social', 'social')),
+                const SizedBox(width: 6),
+                Expanded(child: _formatBtn('🎬', 'Short YT', 'short')),
               ]),
               const SizedBox(height: 8),
               _generaBtn(n > 0 && _formats.isNotEmpty),
