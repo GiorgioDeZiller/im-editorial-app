@@ -6,6 +6,12 @@ class StorageService {
   static const _keyLastFile    = 'im_last_file';
   static const _keySupabaseUrl = 'im_supabase_url';
   static const _keySupabaseKey = 'im_supabase_key';
+  static const _keyHgKey        = 'im_heygen_key';
+  static const _keyHgAvatarId   = 'im_heygen_avatar_id';
+  static const _keyHgAvatarType = 'im_heygen_avatar_type';
+  static const _keyHgAvatarName = 'im_heygen_avatar_name';
+  static const _keyHgVoiceId    = 'im_heygen_voice_id';
+  static const _keyHgVoiceName  = 'im_heygen_voice_name';
 
   static Future<String> getApiKey() async {
     final p = await SharedPreferences.getInstance();
@@ -56,4 +62,28 @@ class StorageService {
     final p = await SharedPreferences.getInstance();
     await p.setString(_keySupabaseKey, v);
   }
+
+  // ── HeyGen (generazione video) ─────────────────────────────────────
+  static Future<String> _get(String k) async {
+    final p = await SharedPreferences.getInstance();
+    return p.getString(k) ?? '';
+  }
+
+  static Future<void> _set(String k, String v) async {
+    final p = await SharedPreferences.getInstance();
+    await p.setString(k, v);
+  }
+
+  static Future<String> getHeygenKey() => _get(_keyHgKey);
+  static Future<void> setHeygenKey(String v) => _set(_keyHgKey, v);
+  static Future<String> getHeygenAvatarId() => _get(_keyHgAvatarId);
+  static Future<void> setHeygenAvatarId(String v) => _set(_keyHgAvatarId, v);
+  static Future<String> getHeygenAvatarType() => _get(_keyHgAvatarType);
+  static Future<void> setHeygenAvatarType(String v) => _set(_keyHgAvatarType, v);
+  static Future<String> getHeygenAvatarName() => _get(_keyHgAvatarName);
+  static Future<void> setHeygenAvatarName(String v) => _set(_keyHgAvatarName, v);
+  static Future<String> getHeygenVoiceId() => _get(_keyHgVoiceId);
+  static Future<void> setHeygenVoiceId(String v) => _set(_keyHgVoiceId, v);
+  static Future<String> getHeygenVoiceName() => _get(_keyHgVoiceName);
+  static Future<void> setHeygenVoiceName(String v) => _set(_keyHgVoiceName, v);
 }
