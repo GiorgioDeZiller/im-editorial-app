@@ -4,8 +4,9 @@ import 'package:http/http.dart' as http;
 class HeyGenAvatar {
   final String id;
   final String name;
-  final String type; // 'avatar' | 'talking_photo'
-  HeyGenAvatar(this.id, this.name, this.type);
+  final String type;            // mantenuto per compatibilità ('avatar')
+  final String? defaultVoiceId;
+  HeyGenAvatar(this.id, this.name, this.type, [this.defaultVoiceId]);
 }
 
 class HeyGenVoice {
@@ -15,6 +16,7 @@ class HeyGenVoice {
   HeyGenVoice(this.id, this.name, this.language);
 }
 
+/// Servizio HeyGen — API v3 (https://api.heygen.com/v3/...)
 class HeyGenService {
   static const _base = 'https://api.heygen.com';
 
@@ -23,45 +25,57 @@ class HeyGenService {
         'Accept': 'application/json',
       };
 
-  // Elenco avatar dell'account (inclusi gli avatar personalizzati/instant)
+  // Elenco avatar personalizzati (custom/instant) dell'account
   static Future<List<HeyGenAvatar>> listAvatars(String key) async {
-    final res =
-        await http.get(Uri.parse('$_base/v2/avatars'), headers: _headers(key));
+    final res = await http.get(
+      Uri.parse('$_base/v3/avatars?ownership=private&limit=50'),
+      headers: _headers(key),
+    );
     if (res.statusCode != 200) {
       throw Exception('Errore avatar ${res.statusCode}: ${res.body}');
     }
-    final data = jsonDecode(res.body)['data'] ?? {};
+    final list = jsonDecode(res.body)['data'] as List? ?? [];
     final out = <HeyGenAvatar>[];
-    for (final a in (data['avatars'] as List? ?? [])) {
-      final id = a['avatar_id']?.toString() ?? '';
+    for (final a in list) {
+      final id = a['id']?.toString() ?? '';
       if (id.isEmpty) continue;
       out.add(HeyGenAvatar(
-          id, (a['avatar_name'] ?? id).toString(), 'avatar'));
-    }
-    for (final a in (data['talking_photos'] as List? ?? [])) {
-      final id = a['talking_photo_id']?.toString() ?? '';
-      if (id.isEmpty) continue;
-      out.add(HeyGenAvatar(
-          id, (a['talking_photo_name'] ?? 'Foto parlante').toString(),
-          'talking_photo'));
+        id,
+        (a['name'] ?? id).toString(),
+        'avatar',
+        a['default_voice_id']?.toString(),
+      ));
     }
     return out;
   }
 
-  // Elenco voci disponibili
+  // Elenco voci: prima le private (voci clonate), poi le pubbliche
   static Future<List<HeyGenVoice>> listVoices(String key) async {
-    final res =
-        await http.get(Uri.parse('$_base/v2/voices'), headers: _headers(key));
-    if (res.statusCode != 200) {
-      throw Exception('Errore voci ${res.statusCode}: ${res.body}');
-    }
-    final data = jsonDecode(res.body)['data'] ?? {};
     final out = <HeyGenVoice>[];
-    for (final v in (data['voices'] as List? ?? [])) {
-      final id = v['voice_id']?.toString() ?? '';
-      if (id.isEmpty) continue;
-      out.add(HeyGenVoice(id, (v['name'] ?? id).toString(),
-          (v['language'] ?? '').toString()));
+    Object? lastError;
+    for (final type in ['private', 'public']) {
+      try {
+        final res = await http.get(
+          Uri.parse('$_base/v3/voices?type=$type&limit=100'),
+          headers: _headers(key),
+        );
+        if (res.statusCode != 200) {
+          lastError = 'Errore voci ${res.statusCode}: ${res.body}';
+          continue;
+        }
+        final list = jsonDecode(res.body)['data'] as List? ?? [];
+        for (final v in list) {
+          final id = v['voice_id']?.toString() ?? '';
+          if (id.isEmpty) continue;
+          out.add(HeyGenVoice(id, (v['name'] ?? id).toString(),
+              (v['language'] ?? '').toString()));
+        }
+      } catch (e) {
+        lastError = e;
+      }
+    }
+    if (out.isEmpty && lastError != null) {
+      throw Exception('$lastError');
     }
     return out;
   }
@@ -70,53 +84,51 @@ class HeyGenService {
   static Future<String> generateVideo({
     required String key,
     required String avatarId,
-    required String avatarType,
+    required String avatarType, // non usato in v3, mantenuto per compatibilità
     required String voiceId,
     required String text,
   }) async {
-    final character = avatarType == 'talking_photo'
-        ? {'type': 'talking_photo', 'talking_photo_id': avatarId}
-        : {'type': 'avatar', 'avatar_id': avatarId, 'avatar_style': 'normal'};
     final body = {
-      'video_inputs': [
-        {
-          'character': character,
-          'voice': {'type': 'text', 'input_text': text, 'voice_id': voiceId},
-        }
-      ],
-      'dimension': {'width': 720, 'height': 1280}, // verticale 9:16
+      'type': 'avatar',
+      'avatar_id': avatarId,
+      'script': text,
+      'voice_id': voiceId,
+      'aspect_ratio': '9:16', // verticale
+      'resolution': '720p',
     };
     final res = await http.post(
-      Uri.parse('$_base/v2/video/generate'),
+      Uri.parse('$_base/v3/videos'),
       headers: {..._headers(key), 'Content-Type': 'application/json'},
       body: jsonEncode(body),
     );
     if (res.statusCode != 200) {
       throw Exception('Errore generazione ${res.statusCode}: ${res.body}');
     }
-    final id = jsonDecode(res.body)['data']?['video_id']?.toString();
+    final data = jsonDecode(res.body)['data'] ?? {};
+    final id = data['video_id']?.toString();
     if (id == null || id.isEmpty) {
       throw Exception('Nessun video_id nella risposta: ${res.body}');
     }
     return id;
   }
 
-  // Stato del rendering. Ritorna {status, videoUrl}.
-  // status: pending | processing | completed | failed
+  // Stato del rendering. Ritorna {status, videoUrl, error}.
+  // status v3: pending | processing | completed | failed (create -> waiting)
   static Future<Map<String, String?>> videoStatus(
       String key, String videoId) async {
     final res = await http.get(
-      Uri.parse('$_base/v1/video_status.get?video_id=$videoId'),
+      Uri.parse('$_base/v3/videos/$videoId'),
       headers: _headers(key),
     );
     if (res.statusCode != 200) {
       throw Exception('Errore stato ${res.statusCode}: ${res.body}');
     }
-    final data = jsonDecode(res.body)['data'] ?? {};
+    final j = jsonDecode(res.body);
+    final data = j['data'] ?? j;
     return {
       'status': data['status']?.toString(),
       'videoUrl': data['video_url']?.toString(),
-      'error': data['error']?.toString(),
+      'error': data['failure_message']?.toString(),
     };
   }
 }
