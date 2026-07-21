@@ -25,7 +25,8 @@ class HeyGenService {
         'Accept': 'application/json',
       };
 
-  // Elenco avatar personalizzati (custom/instant) dell'account
+  // Elenco avatar personalizzati: espande ogni gruppo nei suoi singoli "look"
+  // (es. "Alberto · Felpa arancione", "Alberto · Giacca blu ufficio")
   static Future<List<HeyGenAvatar>> listAvatars(String key) async {
     final res = await http.get(
       Uri.parse('$_base/v3/avatars?ownership=private&limit=50'),
@@ -34,17 +35,41 @@ class HeyGenService {
     if (res.statusCode != 200) {
       throw Exception('Errore avatar ${res.statusCode}: ${res.body}');
     }
-    final list = jsonDecode(res.body)['data'] as List? ?? [];
+    final groups = jsonDecode(res.body)['data'] as List? ?? [];
     final out = <HeyGenAvatar>[];
-    for (final a in list) {
-      final id = a['id']?.toString() ?? '';
-      if (id.isEmpty) continue;
-      out.add(HeyGenAvatar(
-        id,
-        (a['name'] ?? id).toString(),
-        'avatar',
-        a['default_voice_id']?.toString(),
-      ));
+    for (final g in groups) {
+      final gid = g['id']?.toString() ?? '';
+      if (gid.isEmpty) continue;
+      final gname = (g['name'] ?? gid).toString();
+      final gVoice = g['default_voice_id']?.toString();
+
+      List looks = [];
+      try {
+        final lr = await http.get(
+          Uri.parse('$_base/v3/avatars/looks?group_id=$gid&limit=50'),
+          headers: _headers(key),
+        );
+        if (lr.statusCode == 200) {
+          looks = jsonDecode(lr.body)['data'] as List? ?? [];
+        }
+      } catch (_) {}
+
+      if (looks.isEmpty) {
+        // fallback: usa il gruppo come singola opzione
+        out.add(HeyGenAvatar(gid, gname, 'avatar', gVoice));
+      } else {
+        for (final lk in looks) {
+          final lid = lk['id']?.toString() ?? '';
+          if (lid.isEmpty) continue;
+          final lname = (lk['name'] ?? lid).toString();
+          out.add(HeyGenAvatar(
+            lid,
+            '$gname · $lname',
+            'avatar',
+            lk['default_voice_id']?.toString() ?? gVoice,
+          ));
+        }
+      }
     }
     return out;
   }
