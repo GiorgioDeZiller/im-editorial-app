@@ -171,9 +171,15 @@ class _ResultScreenState extends State<ResultScreen> {
       return;
     }
 
-    // query: parole chiave dal testo, oppure fallback sul titolo
-    final query = _extractKeywords() ?? widget.title;
-    final nImages = (_videoDuration / 10).round().clamp(2, 4);
+    // parole chiave dal testo (divise per virgola), oppure fallback sul titolo
+    final kwRaw = _extractKeywords() ?? widget.title;
+    final keywords = kwRaw
+        .split(RegExp(r'[,\n]'))
+        .map((k) => k.trim())
+        .where((k) => k.isNotEmpty)
+        .toList();
+    // numero di immagini proporzionato alla durata
+    final nImages = (_videoDuration / 12).round().clamp(2, 6);
 
     setState(() {
       _brollBusy = true;
@@ -182,9 +188,9 @@ class _ResultScreenState extends State<ResultScreen> {
     });
     try {
       final images =
-          await PexelsService.searchPortrait(pexelsKey, query, nImages);
+          await PexelsService.searchBest(pexelsKey, keywords, nImages);
       if (images.isEmpty) {
-        throw Exception('nessuna immagine trovata per: $query');
+        throw Exception('nessuna immagine trovata per: $kwRaw');
       }
       setState(() => _brollMsg = 'Monto il video (${images.length} immagini)…');
       final renderId = await ShotstackService.render(

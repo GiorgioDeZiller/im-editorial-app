@@ -18,10 +18,14 @@ class ShotstackService {
     final overlays = <Map<String, dynamic>>[];
     final n = imageUrls.length;
     if (n > 0 && duration > 8) {
-      const imgLen = 3.0;
       const startWindow = 4.0;         // salta i primi secondi (hook con l'avatar)
       final endWindow = duration - 2.0;
       final span = endWindow - startWindow;
+      final gap = span / (n + 1);
+      // durata di ogni stacco proporzionale alla lunghezza del video,
+      // limitata per non far sovrapporre due immagini
+      var imgLen = (duration / 14).clamp(2.5, 6.0);
+      if (imgLen > gap * 0.85) imgLen = gap * 0.85;
       for (int i = 0; i < n; i++) {
         var t = startWindow + span * (i + 1) / (n + 1) - imgLen / 2;
         if (t < 0) t = 0;
