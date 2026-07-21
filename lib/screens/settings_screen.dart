@@ -14,9 +14,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final _urlCtrl   = TextEditingController();
   final _sbKeyCtrl = TextEditingController();
   final _hgKeyCtrl = TextEditingController();
+  final _pxCtrl    = TextEditingController();
+  final _ssCtrl    = TextEditingController();
   bool _obscure    = true;
   bool _obscureSb  = true;
   bool _obscureHg  = true;
+  bool _obscurePx  = true;
+  bool _obscureSs  = true;
+  bool _ssSandbox  = true;
   String _model    = 'claude-haiku-4-5-20251001';
   bool _saving     = false;
 
@@ -44,8 +49,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final avN = await StorageService.getHeygenAvatarName();
     final vo = await StorageService.getHeygenVoiceId();
     final voN = await StorageService.getHeygenVoiceName();
+    _pxCtrl.text = await StorageService.getPexelsKey();
+    _ssCtrl.text = await StorageService.getShotstackKey();
+    final ssSb = await StorageService.getShotstackSandbox();
     setState(() {
       _model = m;
+      _ssSandbox = ssSb;
       _avatarId = av.isEmpty ? null : av;
       _avatarType = avT.isEmpty ? 'avatar' : avT;
       _avatarName = avN.isEmpty ? null : avN;
@@ -66,6 +75,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await StorageService.setHeygenAvatarName(_avatarName ?? '');
     await StorageService.setHeygenVoiceId(_voiceId ?? '');
     await StorageService.setHeygenVoiceName(_voiceName ?? '');
+    await StorageService.setPexelsKey(_pxCtrl.text.trim());
+    await StorageService.setShotstackKey(_ssCtrl.text.trim());
+    await StorageService.setShotstackSandbox(_ssSandbox);
     setState(() => _saving = false);
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -330,7 +342,65 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   'Premi "Carica avatar e voci" per cambiarli.'),
             ],
 
-            const SizedBox(height: 32),
+            const SizedBox(height: 28),
+            const Divider(color: Color(0xFF2A2A2A)),
+            const SizedBox(height: 20),
+
+            // ── B-roll (Pexels + Shotstack) ─────────────────────────
+            _section('🎞️  Montaggio b-roll (immagini a tema)'),
+            const SizedBox(height: 8),
+            _infoBox(
+                'Facoltativo. Alterna l\'avatar con immagini a tema nei video Short. '
+                'Servono due chiavi gratuite: Pexels (immagini) e Shotstack (montaggio).'),
+            const SizedBox(height: 16),
+
+            _label('Pexels API Key'),
+            const SizedBox(height: 6),
+            TextFormField(
+              controller: _pxCtrl,
+              obscureText: _obscurePx,
+              style: const TextStyle(
+                  color: Color(0xFFFFFFFF),
+                  fontFamily: 'monospace',
+                  fontSize: 12),
+              decoration: _inputDeco('Pexels API key').copyWith(
+                suffixIcon: _eyeBtn(
+                    _obscurePx, () => setState(() => _obscurePx = !_obscurePx)),
+              ),
+            ),
+            const SizedBox(height: 4),
+            const Text('Gratuita su pexels.com/api',
+                style: TextStyle(fontSize: 11, color: Color(0xFF666666))),
+            const SizedBox(height: 14),
+
+            _label('Shotstack API Key'),
+            const SizedBox(height: 6),
+            TextFormField(
+              controller: _ssCtrl,
+              obscureText: _obscureSs,
+              style: const TextStyle(
+                  color: Color(0xFFFFFFFF),
+                  fontFamily: 'monospace',
+                  fontSize: 12),
+              decoration: _inputDeco('Shotstack API key').copyWith(
+                suffixIcon: _eyeBtn(
+                    _obscureSs, () => setState(() => _obscureSs = !_obscureSs)),
+              ),
+            ),
+            const SizedBox(height: 10),
+            SwitchListTile(
+              value: _ssSandbox,
+              onChanged: (v) => setState(() => _ssSandbox = v),
+              contentPadding: EdgeInsets.zero,
+              activeThumbColor: const Color(0xFFF7941D),
+              title: const Text('Modalità sandbox (test, gratis)',
+                  style: TextStyle(color: Color(0xFFFFFFFF), fontSize: 13)),
+              subtitle: const Text(
+                  'ON = test gratuito (video con watermark). OFF = produzione (chiave e piano prod).',
+                  style: TextStyle(color: Color(0xFF666666), fontSize: 11)),
+            ),
+
+            const SizedBox(height: 24),
 
             SizedBox(
               width: double.infinity,
@@ -442,6 +512,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _urlCtrl.dispose();
     _sbKeyCtrl.dispose();
     _hgKeyCtrl.dispose();
+    _pxCtrl.dispose();
+    _ssCtrl.dispose();
     super.dispose();
   }
 }

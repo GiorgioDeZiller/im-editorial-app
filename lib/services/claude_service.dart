@@ -151,7 +151,10 @@ Produci ESATTAMENTE queste 3 sezioni, con queste intestazioni:
 (3-6 parole da mostrare come testo in sovrimpressione all'inizio)
 
 === DESCRIZIONE + HASHTAG (per l'upload su YouTube) ===
-(2-3 righe di descrizione + 4-6 hashtag pertinenti al settore)''';
+(2-3 righe di descrizione + 4-6 hashtag pertinenti al settore)
+
+=== IMMAGINI (parole chiave in inglese per stock) ===
+(3-4 termini in INGLESE separati da virgola per cercare immagini stock pertinenti all'argomento, es: dairy farm, cattle barn, farm technology)''';
 
       default:
         return 'Scrivi un testo divulgativo su:\n$topics';

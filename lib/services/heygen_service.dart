@@ -154,6 +154,7 @@ class HeyGenService {
       'status': data['status']?.toString(),
       'videoUrl': data['video_url']?.toString(),
       'error': data['failure_message']?.toString(),
+      'duration': data['duration']?.toString(),
     };
   }
 }

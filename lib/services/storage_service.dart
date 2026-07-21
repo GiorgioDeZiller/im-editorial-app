@@ -12,6 +12,9 @@ class StorageService {
   static const _keyHgAvatarName = 'im_heygen_avatar_name';
   static const _keyHgVoiceId    = 'im_heygen_voice_id';
   static const _keyHgVoiceName  = 'im_heygen_voice_name';
+  static const _keyPexelsKey    = 'im_pexels_key';
+  static const _keyShotstackKey = 'im_shotstack_key';
+  static const _keyShotstackSb  = 'im_shotstack_sandbox';
 
   static Future<String> getApiKey() async {
     final p = await SharedPreferences.getInstance();
@@ -86,4 +89,19 @@ class StorageService {
   static Future<void> setHeygenVoiceId(String v) => _set(_keyHgVoiceId, v);
   static Future<String> getHeygenVoiceName() => _get(_keyHgVoiceName);
   static Future<void> setHeygenVoiceName(String v) => _set(_keyHgVoiceName, v);
+
+  static Future<String> getPexelsKey() => _get(_keyPexelsKey);
+  static Future<void> setPexelsKey(String v) => _set(_keyPexelsKey, v);
+  static Future<String> getShotstackKey() => _get(_keyShotstackKey);
+  static Future<void> setShotstackKey(String v) => _set(_keyShotstackKey, v);
+
+  static Future<bool> getShotstackSandbox() async {
+    final p = await SharedPreferences.getInstance();
+    return p.getBool(_keyShotstackSb) ?? true; // default: sandbox (gratis)
+  }
+
+  static Future<void> setShotstackSandbox(bool v) async {
+    final p = await SharedPreferences.getInstance();
+    await p.setBool(_keyShotstackSb, v);
+  }
 }
