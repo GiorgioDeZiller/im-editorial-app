@@ -508,7 +508,7 @@ class _ProposalCardState extends State<ProposalCard> {
           Expanded(
             child: _miniBtn(
                 Icons.upload,
-                _publishing ? 'Pubblico…' : '▶ Pubblica',
+                _publishing ? 'Pubblico…' : '📢 Pubblica ovunque',
                 const Color(0xFFF7941D),
                 (_publishing || widget.onPublish == null) ? null : _doPublish),
           ),

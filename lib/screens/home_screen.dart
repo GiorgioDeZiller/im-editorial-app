@@ -82,10 +82,14 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
     try {
+      final sectorTag = p.sector.replaceAll(RegExp(r'\s+'), '');
+      final caption = '${p.title}\n\n'
+          '#InnovationMachine #agrifood${sectorTag.isNotEmpty ? ' #$sectorTag' : ''} '
+          '#digitalizzazione #agricoltura';
       final yt = await MakeService.publish(webhook,
           videoUrl: p.videoUrl,
           title: p.title,
-          description: 'Innovation Machine — ${p.title}');
+          description: caption);
       await SupabaseService.updateFields(p.id, {
         'youtube_url': yt ?? '',
         'video_status': 'published',
