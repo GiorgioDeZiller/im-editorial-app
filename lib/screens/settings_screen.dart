@@ -16,6 +16,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final _hgKeyCtrl = TextEditingController();
   final _pxCtrl    = TextEditingController();
   final _ssCtrl    = TextEditingController();
+  final _makeCtrl  = TextEditingController();
   bool _obscure    = true;
   bool _obscureSb  = true;
   bool _obscureHg  = true;
@@ -51,6 +52,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final voN = await StorageService.getHeygenVoiceName();
     _pxCtrl.text = await StorageService.getPexelsKey();
     _ssCtrl.text = await StorageService.getShotstackKey();
+    _makeCtrl.text = await StorageService.getMakeWebhook();
     final ssSb = await StorageService.getShotstackSandbox();
     setState(() {
       _model = m;
@@ -78,6 +80,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await StorageService.setPexelsKey(_pxCtrl.text.trim());
     await StorageService.setShotstackKey(_ssCtrl.text.trim());
     await StorageService.setShotstackSandbox(_ssSandbox);
+    await StorageService.setMakeWebhook(_makeCtrl.text.trim());
     setState(() => _saving = false);
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -400,6 +403,33 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   style: TextStyle(color: Color(0xFF666666), fontSize: 11)),
             ),
 
+            const SizedBox(height: 28),
+            const Divider(color: Color(0xFF2A2A2A)),
+            const SizedBox(height: 20),
+
+            // ── Pubblicazione YouTube (Make) ────────────────────────
+            _section('▶  Pubblicazione YouTube (Make)'),
+            const SizedBox(height: 8),
+            _infoBox(
+                'Facoltativo. Incolla l\'URL del webhook Make che carica i video '
+                'su YouTube come bozza/non in elenco. Il caricamento parte quando '
+                'premi "Pubblica" su un video pronto.'),
+            const SizedBox(height: 16),
+
+            _label('Make Webhook URL'),
+            const SizedBox(height: 6),
+            TextFormField(
+              controller: _makeCtrl,
+              style: const TextStyle(
+                  color: Color(0xFFFFFFFF),
+                  fontFamily: 'monospace',
+                  fontSize: 12),
+              decoration: _inputDeco('https://hook.eu2.make.com/...'),
+            ),
+            const SizedBox(height: 4),
+            const Text('La crei nello scenario Make (modulo Webhook)',
+                style: TextStyle(fontSize: 11, color: Color(0xFF666666))),
+
             const SizedBox(height: 24),
 
             SizedBox(
@@ -514,6 +544,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _hgKeyCtrl.dispose();
     _pxCtrl.dispose();
     _ssCtrl.dispose();
+    _makeCtrl.dispose();
     super.dispose();
   }
 }

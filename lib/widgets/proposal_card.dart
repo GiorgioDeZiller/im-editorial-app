@@ -9,6 +9,8 @@ class ProposalCard extends StatefulWidget {
   final ValueChanged<String> onStatusChange;
   // Salva un campo modificato (colonna DB -> nuovo valore). Puo lanciare in caso di errore.
   final Future<void> Function(String column, String value)? onEditField;
+  // Pubblica il video pronto su YouTube (via Make). Puo lanciare in caso di errore.
+  final Future<void> Function()? onPublish;
 
   const ProposalCard({
     super.key,
@@ -17,6 +19,7 @@ class ProposalCard extends StatefulWidget {
     required this.onTap,
     required this.onStatusChange,
     this.onEditField,
+    this.onPublish,
   });
 
   @override
@@ -28,6 +31,7 @@ class _ProposalCardState extends State<ProposalCard> {
   String? _editingCol;              // colonna DB del campo in modifica
   final TextEditingController _editCtrl = TextEditingController();
   bool _saving = false;
+  bool _publishing = false;
 
   Proposal get proposal => widget.proposal;
   bool get isSelected => widget.isSelected;
@@ -480,44 +484,97 @@ class _ProposalCardState extends State<ProposalCard> {
 
   Widget _videoStatusChip() {
     final s = proposal.videoStatus;
-    final ready = s == 'ready' && proposal.videoUrl.isNotEmpty;
-    String label;
-    Color color;
-    switch (s) {
-      case 'queued':
-        label = '⏳ Video in coda'; color = const Color(0xFFf59e0b); break;
-      case 'rendering':
-        label = '⚙️ Video in generazione'; color = const Color(0xFFf59e0b); break;
-      case 'ready':
-        label = '🎬 Video pronto — tocca per aprire';
-        color = const Color(0xFF22c55e); break;
-      case 'published':
-        label = '✅ Pubblicato su YouTube'; color = const Color(0xFF22c55e); break;
-      case 'error':
-        label = '⚠️ Errore generazione video'; color = const Color(0xFFef4444); break;
-      default:
-        return const SizedBox.shrink();
+    if (s == 'queued' || s == 'rendering' || s == 'error') {
+      final label = s == 'queued'
+          ? '⏳ Video in coda'
+          : s == 'rendering'
+              ? '⚙️ Video in generazione'
+              : '⚠️ Errore generazione video';
+      final color =
+          s == 'error' ? const Color(0xFFef4444) : const Color(0xFFf59e0b);
+      return _statusBox(label, color);
     }
-    final chip = Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: color.withValues(alpha: 0.6)),
-      ),
-      child: Text(label,
-          style: TextStyle(
-              fontSize: 11, fontWeight: FontWeight.w700, color: color)),
-    );
-    if (!ready) return chip;
-    return GestureDetector(
-      onTap: () => Share.share(proposal.videoUrl,
-          subject: 'Video Short — ${proposal.title}'),
-      behavior: HitTestBehavior.opaque,
-      child: chip,
-    );
+    if (s == 'ready' && proposal.videoUrl.isNotEmpty) {
+      return Column(children: [
+        _statusBox('🎬 Video pronto', const Color(0xFF22c55e)),
+        const SizedBox(height: 6),
+        Row(children: [
+          Expanded(
+            child: _miniBtn(Icons.play_circle_outline, 'Apri',
+                const Color(0xFF22c55e),
+                () => Share.share(proposal.videoUrl, subject: proposal.title)),
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            child: _miniBtn(
+                Icons.upload,
+                _publishing ? 'Pubblico…' : '▶ Pubblica',
+                const Color(0xFFF7941D),
+                (_publishing || widget.onPublish == null) ? null : _doPublish),
+          ),
+        ]),
+      ]);
+    }
+    if (s == 'published') {
+      return Column(children: [
+        _statusBox('✅ Pubblicato su YouTube (bozza)', const Color(0xFF22c55e)),
+        if (proposal.youtubeUrl.isNotEmpty) ...[
+          const SizedBox(height: 6),
+          _miniBtn(Icons.open_in_new, 'Apri su YouTube', const Color(0xFF22c55e),
+              () => Share.share(proposal.youtubeUrl, subject: proposal.title)),
+        ],
+      ]);
+    }
+    return const SizedBox.shrink();
   }
+
+  Future<void> _doPublish() async {
+    setState(() => _publishing = true);
+    try {
+      await widget.onPublish!.call();
+    } catch (_) {}
+    if (mounted) setState(() => _publishing = false);
+  }
+
+  Widget _statusBox(String label, Color color) => Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(color: color.withValues(alpha: 0.6)),
+        ),
+        child: Text(label,
+            style: TextStyle(
+                fontSize: 11, fontWeight: FontWeight.w700, color: color)),
+      );
+
+  Widget _miniBtn(
+          IconData icon, String label, Color color, VoidCallback? onTap) =>
+      GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(6),
+            border: Border.all(
+                color: onTap == null ? const Color(0xFF444444) : color),
+          ),
+          alignment: Alignment.center,
+          child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+            Icon(icon,
+                size: 14,
+                color: onTap == null ? const Color(0xFF666666) : color),
+            const SizedBox(width: 4),
+            Text(label,
+                style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: onTap == null ? const Color(0xFF666666) : color)),
+          ]),
+        ),
+      );
 
   Widget _badge(String label, Color bg, Color fg) {
     return Container(

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../models/proposal.dart';
 import '../services/supabase_service.dart';
 import '../services/claude_service.dart';
+import '../services/make_service.dart';
 import '../services/storage_service.dart';
 import '../services/notification_service.dart';
 import '../services/theme_service.dart';
@@ -65,6 +66,46 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       await SupabaseService.updateStatus(p.id, newStatus);
     } catch (_) {}
+  }
+
+  // ── Pubblica il video su YouTube (via Make) ────────────────────────
+  Future<void> _publishVideo(Proposal p) async {
+    final webhook = await StorageService.getMakeWebhook();
+    if (webhook.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Configura il webhook Make nelle impostazioni'),
+            backgroundColor: Color(0xFFf59e0b)));
+        await Navigator.push(context,
+            MaterialPageRoute(builder: (_) => const SettingsScreen()));
+      }
+      return;
+    }
+    try {
+      final yt = await MakeService.publish(webhook,
+          videoUrl: p.videoUrl,
+          title: p.title,
+          description: 'Innovation Machine — ${p.title}');
+      await SupabaseService.updateFields(p.id, {
+        'youtube_url': yt ?? '',
+        'video_status': 'published',
+      });
+      if (mounted) {
+        setState(() {
+          p.videoStatus = 'published';
+          p.youtubeUrl = yt ?? '';
+        });
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('▶ Inviato a YouTube come bozza/non in elenco'),
+            backgroundColor: Color(0xFF22c55e)));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('Errore pubblicazione: $e'),
+            backgroundColor: const Color(0xFFef4444)));
+      }
+    }
   }
 
   // ── Filtri ─────────────────────────────────────────────────────────
@@ -580,6 +621,7 @@ class _HomeScreenState extends State<HomeScreen> {
           onStatusChange: (s) => _changeStatus(p, s),
           onEditField: (column, value) =>
               SupabaseService.updateFields(p.id, {column: value}),
+          onPublish: () => _publishVideo(p),
         );
       },
     );

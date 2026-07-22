@@ -15,6 +15,7 @@ class StorageService {
   static const _keyPexelsKey    = 'im_pexels_key';
   static const _keyShotstackKey = 'im_shotstack_key';
   static const _keyShotstackSb  = 'im_shotstack_sandbox';
+  static const _keyMakeWebhook  = 'im_make_webhook';
 
   static Future<String> getApiKey() async {
     final p = await SharedPreferences.getInstance();
@@ -104,4 +105,7 @@ class StorageService {
     final p = await SharedPreferences.getInstance();
     await p.setBool(_keyShotstackSb, v);
   }
+
+  static Future<String> getMakeWebhook() => _get(_keyMakeWebhook);
+  static Future<void> setMakeWebhook(String v) => _set(_keyMakeWebhook, v);
 }
