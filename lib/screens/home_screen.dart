@@ -138,7 +138,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     title: order.length > 1
                         ? 'Contenuti generati'
                         : (titles[order.first] ?? 'Risultato'),
-                    text: buffer.toString())));
+                    text: buffer.toString(),
+                    proposalId:
+                        selected.length == 1 ? selected.first.id : null)));
       }
     } catch (e) {
       if (mounted) {

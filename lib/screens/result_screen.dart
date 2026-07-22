@@ -5,13 +5,16 @@ import '../services/storage_service.dart';
 import '../services/heygen_service.dart';
 import '../services/pexels_service.dart';
 import '../services/shotstack_service.dart';
+import '../services/supabase_service.dart';
 import 'settings_screen.dart';
 
 class ResultScreen extends StatefulWidget {
   final String title;
   final String text;
+  final String? proposalId; // se valorizzato, si può mettere in coda cloud
 
-  const ResultScreen({super.key, required this.title, required this.text});
+  const ResultScreen(
+      {super.key, required this.title, required this.text, this.proposalId});
 
   @override
   State<ResultScreen> createState() => _ResultScreenState();
@@ -232,6 +235,59 @@ class _ResultScreenState extends State<ResultScreen> {
     }
   }
 
+  bool _queuing = false;
+
+  // Mette il video in coda per la generazione automatica nel cloud
+  Future<void> _queueCloud() async {
+    final copione = _extractCopione();
+    if (copione == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Nessun copione trovato'),
+          backgroundColor: Color(0xFFf59e0b)));
+      return;
+    }
+    final avatarId = await StorageService.getHeygenAvatarId();
+    final voiceId = await StorageService.getHeygenVoiceId();
+    if (avatarId.isEmpty || voiceId.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Configura avatar e voce HeyGen nelle impostazioni'),
+          backgroundColor: Color(0xFFf59e0b)));
+      await Navigator.push(context,
+          MaterialPageRoute(builder: (_) => const SettingsScreen()));
+      return;
+    }
+    final keywords = _extractKeywords() ?? widget.title;
+    setState(() => _queuing = true);
+    try {
+      await SupabaseService.updateFields(widget.proposalId!, {
+        'video_script': copione,
+        'video_keywords': keywords,
+        'video_avatar_id': avatarId,
+        'video_voice_id': voiceId,
+        'video_status': 'queued',
+        'video_url': null,
+        'youtube_url': null,
+        'video_error': null,
+      });
+      if (mounted) {
+        setState(() => _queuing = false);
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text(
+                '☁️ In coda: il video verrà generato automaticamente (anche a PC spento)'),
+            backgroundColor: Color(0xFF22c55e)));
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _queuing = false);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('Errore coda: $e'),
+            backgroundColor: const Color(0xFFef4444)));
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -291,6 +347,10 @@ class _ResultScreenState extends State<ResultScreen> {
               if (_hasShort) ...[
                 _videoSection(),
                 const SizedBox(height: 8),
+                if (widget.proposalId != null) ...[
+                  _cloudQueueButton(),
+                  const SizedBox(height: 8),
+                ],
               ],
               Row(
                 children: [
@@ -448,6 +508,30 @@ class _ResultScreenState extends State<ResultScreen> {
               side: const BorderSide(color: Color(0xFFF7941D))),
         ),
         onPressed: _generateVideo,
+      ),
+    );
+  }
+
+  Widget _cloudQueueButton() {
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton.icon(
+        icon: _queuing
+            ? const SizedBox(
+                width: 14,
+                height: 14,
+                child: CircularProgressIndicator(
+                    strokeWidth: 2, color: Color(0xFF60a5fa)))
+            : const Icon(Icons.cloud_upload, size: 16),
+        label: Text(_queuing
+            ? 'Invio in coda…'
+            : '☁️ Genera in automatico (cloud)'),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: const Color(0xFF93c5fd),
+          side: const BorderSide(color: Color(0xFF3b82f6)),
+          padding: const EdgeInsets.symmetric(vertical: 11),
+        ),
+        onPressed: _queuing ? null : _queueCloud,
       ),
     );
   }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:share_plus/share_plus.dart';
 import '../models/proposal.dart';
 
 class ProposalCard extends StatefulWidget {
@@ -218,6 +219,12 @@ class _ProposalCardState extends State<ProposalCard> {
                       style: const TextStyle(fontSize: 10, color: Color(0xFF666666))),
                 ],
               ),
+
+              if (proposal.videoStatus.isNotEmpty &&
+                  proposal.videoStatus != 'none') ...[
+                const SizedBox(height: 8),
+                _videoStatusChip(),
+              ],
 
               const SizedBox(height: 10),
               const Divider(color: Color(0xFF2A2A2A), height: 1),
@@ -468,6 +475,47 @@ class _ProposalCardState extends State<ProposalCard> {
                   fontSize: 12.5, color: Color(0xFFDDDDDD), height: 1.45)),
         ],
       ),
+    );
+  }
+
+  Widget _videoStatusChip() {
+    final s = proposal.videoStatus;
+    final ready = s == 'ready' && proposal.videoUrl.isNotEmpty;
+    String label;
+    Color color;
+    switch (s) {
+      case 'queued':
+        label = '⏳ Video in coda'; color = const Color(0xFFf59e0b); break;
+      case 'rendering':
+        label = '⚙️ Video in generazione'; color = const Color(0xFFf59e0b); break;
+      case 'ready':
+        label = '🎬 Video pronto — tocca per aprire';
+        color = const Color(0xFF22c55e); break;
+      case 'published':
+        label = '✅ Pubblicato su YouTube'; color = const Color(0xFF22c55e); break;
+      case 'error':
+        label = '⚠️ Errore generazione video'; color = const Color(0xFFef4444); break;
+      default:
+        return const SizedBox.shrink();
+    }
+    final chip = Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: color.withValues(alpha: 0.6)),
+      ),
+      child: Text(label,
+          style: TextStyle(
+              fontSize: 11, fontWeight: FontWeight.w700, color: color)),
+    );
+    if (!ready) return chip;
+    return GestureDetector(
+      onTap: () => Share.share(proposal.videoUrl,
+          subject: 'Video Short — ${proposal.title}'),
+      behavior: HitTestBehavior.opaque,
+      child: chip,
     );
   }
 

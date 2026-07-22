@@ -1,0 +1,32 @@
+name: Video worker (genera i video in coda)
+
+on:
+  schedule:
+    - cron: '9,24,39,54 * * * *'   # ogni 15 minuti (minuti sfasati)
+  workflow_dispatch:               # avvio manuale dalla tab Actions
+
+concurrency:
+  group: "video-worker"
+  cancel-in-progress: false
+
+jobs:
+  worker:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Run worker
+        run: node scripts/video-worker.mjs
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+          HEYGEN_KEY: ${{ secrets.HEYGEN_KEY }}
+          PEXELS_KEY: ${{ secrets.PEXELS_KEY }}
+          SHOTSTACK_KEY: ${{ secrets.SHOTSTACK_KEY }}
+          SHOTSTACK_SANDBOX: ${{ secrets.SHOTSTACK_SANDBOX }}

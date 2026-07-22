@@ -14,6 +14,10 @@ class Proposal {
   final String priority;
   String status;
   final String note;
+  // Coda video automatica (Fase 3)
+  String videoStatus;   // none | queued | rendering | ready | published | error
+  String videoUrl;
+  String youtubeUrl;
 
   Proposal({
     required this.id,
@@ -30,6 +34,9 @@ class Proposal {
     required this.priority,
     required this.status,
     required this.note,
+    this.videoStatus = 'none',
+    this.videoUrl = '',
+    this.youtubeUrl = '',
   });
 
   bool get isNew {
@@ -74,6 +81,9 @@ class Proposal {
       priority: row['priorita']?.toString() ?? '',
       status:   row['stato']?.toString() ?? 'Da valutare',
       note:     row['note']?.toString() ?? '',
+      videoStatus: row['video_status']?.toString() ?? 'none',
+      videoUrl:    row['video_url']?.toString() ?? '',
+      youtubeUrl:  row['youtube_url']?.toString() ?? '',
     );
   }
 
