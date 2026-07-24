@@ -159,6 +159,30 @@ async function shotstackWait(renderId) {
   throw new Error('Shotstack timeout');
 }
 
+// ── Storage permanente (Supabase Storage) ──────────────────────────
+// I link di HeyGen/Shotstack scadono dopo poco: salviamo il file finale
+// nel bucket "videos" così il link resta valido per sempre.
+async function uploadToStorage(id, sourceUrl) {
+  const res = await fetch(sourceUrl);
+  if (!res.ok) throw new Error(`download del video finale ${res.status}`);
+  const buf = Buffer.from(await res.arrayBuffer());
+  const name = `${id}-${Date.now()}.mp4`;
+  const up = await fetch(`${SUPABASE_URL}/storage/v1/object/videos/${name}`, {
+    method: 'POST',
+    headers: {
+      apikey: SUPABASE_KEY,
+      Authorization: `Bearer ${SUPABASE_KEY}`,
+      'Content-Type': 'video/mp4',
+      'x-upsert': 'true',
+    },
+    body: buf,
+  });
+  if (!up.ok) {
+    throw new Error(`upload storage ${up.status}: ${await up.text()}`);
+  }
+  return `${SUPABASE_URL}/storage/v1/object/public/videos/${name}`;
+}
+
 // ── Elaborazione di una riga ───────────────────────────────────────
 async function processOne(row) {
   console.log(`Processo ${row.id}...`);
@@ -185,8 +209,19 @@ async function processOne(row) {
       }
     }
 
-    await sbPatch(row.id, { video_status: 'ready', video_url: finalUrl });
-    console.log(`  OK -> ${finalUrl}`);
+    // Salva su storage permanente (con fallback al link temporaneo)
+    let permanentUrl = finalUrl;
+    try {
+      permanentUrl = await uploadToStorage(row.id, finalUrl);
+      console.log(`  salvato su storage permanente: ${permanentUrl}`);
+    } catch (e) {
+      console.error(
+        `  ATTENZIONE: storage fallito, uso il link temporaneo (${e.message})`
+      );
+    }
+
+    await sbPatch(row.id, { video_status: 'ready', video_url: permanentUrl });
+    console.log(`  OK -> ${permanentUrl}`);
   } catch (e) {
     console.error(`  ERRORE ${row.id}: ${e.message}`);
     await sbPatch(row.id, {
